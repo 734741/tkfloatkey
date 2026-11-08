@@ -1,0 +1,9 @@
+﻿build/
+*.ipa
+*.zip
+*.log
+Payload/
+tools/*.exe
+.DS_Store
+xcuserdata/
+*.xcuserstate

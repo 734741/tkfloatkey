@@ -1,0 +1,106 @@
+﻿name: Build TKFloatKey IPA
+
+# 触发方式：
+#   1) 仓库页面 → Actions → Build TKFloatKey IPA → Run workflow
+#   2) push 到 main / master
+#
+# 产出：Artifacts 里的 TKFloatKey-ipa（下载后就是可侧载的 .ipa）
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    name: Build unsigned IPA
+    runs-on: macos-14
+    timeout-minutes: 40
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+          swift --version || true
+
+      # CI 上没有签名证书，App Group / Keychain 的 entitlements 会直接让构建失败。
+      # 这里把它们从 pbxproj 里摘掉，做成纯无签名产物；App 运行时靠 BuildConfig
+      # 自动降级到 Documents 目录，不会崩。
+      - name: Strip entitlements for unsigned CI build
+        run: |
+          set -euo pipefail
+          PBX=TKFloatKey.xcodeproj/project.pbxproj
+          cp "$PBX" "$PBX.orig"
+          perl -0pi -e 's/^\s*CODE_SIGN_ENTITLEMENTS = [^;]+;\n//mg' "$PBX"
+          echo "--- 确认已移除 ---"
+          grep -c CODE_SIGN_ENTITLEMENTS "$PBX" || echo "0 处（已清空）"
+
+      - name: Build (no signing)
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project TKFloatKey.xcodeproj \
+            -scheme TKFloatKey \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            -destination 'generic/platform=iOS' \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            ENABLE_BITCODE=NO \
+            build 2>&1 | tee build.log
+
+      - name: Verify build products
+        run: |
+          set -euo pipefail
+          APP="build/Build/Products/Release-iphoneos/TKFloatKey.app"
+          if [ ! -d "$APP" ]; then
+            echo "❌ 没有找到 $APP"
+            tail -n 300 build.log
+            exit 1
+          fi
+          echo "✅ $APP"
+          ls -la "$APP"
+          echo "--- 内嵌键盘扩展 ---"
+          if [ -d "$APP/PlugIns" ]; then
+            ls -la "$APP/PlugIns"
+            ls -la "$APP/PlugIns/TKFloatKeyKeyboard.appex" 2>/dev/null || true
+          else
+            echo "⚠️ 没有 PlugIns —— 键盘扩展没被打进去"
+          fi
+          echo "--- 架构 ---"
+          lipo -info "$APP/TKFloatKey"
+
+      - name: Package IPA
+        run: |
+          set -euo pipefail
+          APP="build/Build/Products/Release-iphoneos/TKFloatKey.app"
+          rm -rf Payload TKFloatKey.ipa
+          mkdir -p Payload
+          cp -R "$APP" Payload/
+          rm -rf Payload/TKFloatKey.app/_CodeSignature || true
+          zip -qry TKFloatKey.ipa Payload
+          ls -lh TKFloatKey.ipa
+          shasum -a 256 TKFloatKey.ipa
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: TKFloatKey-ipa
+          path: TKFloatKey.ipa
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
+          if-no-files-found: ignore
+          retention-days: 7
+
