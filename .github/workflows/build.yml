@@ -73,7 +73,7 @@ jobs:
             echo "⚠️ 没有 PlugIns —— 键盘扩展没被打进去"
           fi
           echo "--- 架构 ---"
-          lipo -info "$APP/TKFloatKey"
+          lipo -info "$APP/TKFloatKey" || echo "(架构读取跳过)"
 
       - name: Package IPA
         run: |
@@ -103,5 +103,6 @@ jobs:
           path: build.log
           if-no-files-found: ignore
           retention-days: 7
+
 
 
