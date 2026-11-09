@@ -220,7 +220,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A100000000000000000006 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -237,6 +236,7 @@
 				A100000000000000000004 /* CredentialVault.swift in Sources */,
 				A100000000000000000005 /* TOTP.swift in Sources */,
 				A10000000000000000000C /* BuildConfig.swift in Sources (App) */,
+				A100000000000000000006 /* Assets.xcassets in Resources */,
 				A10000000000000000000F /* BulkImportView.swift in Sources */,
 				A100000000000000000010 /* BulkDeleteSheet.swift in Sources */,
 			);
@@ -445,6 +445,8 @@
 	};
 	rootObject = E100000000000000000000 /* Project object */;
 }
+
+
 
 
 
