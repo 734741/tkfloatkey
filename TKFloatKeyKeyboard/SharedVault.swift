@@ -31,8 +31,10 @@ final class SharedVault: ObservableObject {
 
     private static func readChannel() -> [Credential]? {
         let board = BuildConfig.channel
-        guard let item = board.items?.first,
-              let encoded = item["json"] as? String,
+        // `UIPasteboard.items` is a non-optional [[String: Any]]; an empty
+        // array means nothing has been published yet.
+        guard let item = board.items.first else { return nil }
+        guard let encoded = item["json"] as? String,
               let data = Data(base64Encoded: encoded),
               let decoded = try? JSONDecoder().decode([Credential].self, from: data)
         else { return nil }
