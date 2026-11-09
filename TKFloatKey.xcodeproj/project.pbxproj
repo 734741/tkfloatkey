@@ -236,7 +236,6 @@
 				A100000000000000000004 /* CredentialVault.swift in Sources */,
 				A100000000000000000005 /* TOTP.swift in Sources */,
 				A10000000000000000000C /* BuildConfig.swift in Sources (App) */,
-				A100000000000000000006 /* Assets.xcassets in Resources */,
 				A10000000000000000000F /* BulkImportView.swift in Sources */,
 				A100000000000000000010 /* BulkDeleteSheet.swift in Sources */,
 			);
@@ -320,8 +319,6 @@
 		F1000000000000000000B1 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
@@ -344,8 +341,6 @@
 		F1000000000000000000B2 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
@@ -445,6 +440,7 @@
 	};
 	rootObject = E100000000000000000000 /* Project object */;
 }
+
 
 
 
