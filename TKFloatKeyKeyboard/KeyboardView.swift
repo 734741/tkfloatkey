@@ -57,7 +57,7 @@ struct KeyboardView: View {
 
     private var slotRow: some View {
         HStack(spacing: 5) {
-            ForEach(1...10, id: \.self) { id in
+            ForEach(Array(vault.slots.map(\.id).prefix(20)), id: \.self) { id in
                 let slot = vault.slots.first { $0.id == id } ?? .empty(id)
                 Button {
                     // Only selects the slot. Typing happens on the buttons below.
@@ -229,6 +229,7 @@ struct KeyboardView: View {
         }
     }
 }
+
 
 
 

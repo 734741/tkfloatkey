@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 import UIKit
 
 /// Bulk import: paste lines of `备注|账号|密码|2FA密钥` and fill all ten slots
@@ -97,7 +97,7 @@ struct BulkImportView: View {
 
         var filled = 0
         for (index, line) in rawLines.enumerated() {
-            guard index < CredentialVault.slotCount else { break }
+            // Slots are unbounded: every parsed line gets its own slot.
             var parts = line.components(separatedBy: "|")
                 .map { $0.trimmingCharacters(in: .whitespaces) }
 
@@ -125,7 +125,11 @@ struct BulkImportView: View {
             }
 
             if !cred.isEmpty {
-                vault[index + 1] = cred
+                if index < vault.count {
+                    vault[index + 1] = cred
+                } else {
+                    vault.append(cred)
+                }
                 filled += 1
             }
         }
@@ -136,3 +140,4 @@ struct BulkImportView: View {
         statusIsError = false
     }
 }
+

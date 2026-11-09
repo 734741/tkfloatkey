@@ -26,6 +26,23 @@ struct SlotPanel: View {
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 10)
+
+                Button {
+                    let id = vault.addSlot()
+                    withAnimation(.spring(response: 0.28, dampingFraction: 0.85)) {
+                        openSlot = id
+                    }
+                } label: {
+                    Label("新增槽位", systemImage: "plus.circle.fill")
+                        .font(.system(size: 13, weight: .semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 9)
+                        .background(RoundedRectangle(cornerRadius: 10)
+                            .fill(Color.accentColor.opacity(0.14)))
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, 10)
+                .padding(.bottom, 10)
             }
             .frame(maxHeight: 380)
         }
@@ -56,7 +73,7 @@ struct SlotPanel: View {
             Text("TK 账号槽位")
                 .font(.system(size: 14, weight: .semibold, design: .rounded))
             Spacer()
-            Text("\(vault.filledCount)/10")
+            Text("\(vault.filledCount)/\(vault.count)")
                 .font(.system(size: 11, weight: .bold, design: .rounded))
                 .padding(.horizontal, 7).padding(.vertical, 3)
                 .background(Capsule().fill(.quaternary))
@@ -215,12 +232,13 @@ struct SlotPanel: View {
                     .buttonStyle(.plain)
 
                     Button {
-                        vault.clear(slot.id)
+                        vault.delete(slot.id)
                         withAnimation { openSlot = nil }
                     } label: {
-                        smallButton("清空", "trash")
+                        smallButton("删除", "trash.fill")
                     }
                     .buttonStyle(.plain)
+                    .foregroundStyle(.red)
                 }
             }
         }
@@ -460,6 +478,8 @@ struct EditorSheet: View {
         }
     }
 }
+
+
 
 
 

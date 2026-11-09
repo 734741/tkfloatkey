@@ -61,20 +61,21 @@ struct Credential: Identifiable, Codable, Equatable {
 
 final class CredentialVault: ObservableObject {
 
-    static let slotCount = 10
+    /// Legacy constant kept for the bulk importer's "no more than N" guard.
+    /// Slots are unbounded now, so this is only the initial seed count.
+    static let initialSlotCount = 10
+
     static let keychainService = BuildConfig.keychainService
     static let keychainAccount = BuildConfig.keychainAccount
 
     @Published private(set) var slots: [Credential]
 
     init() {
-        if let decoded = CredentialVault.loadAll(),
-           decoded.count == CredentialVault.slotCount {
+        if let decoded = CredentialVault.loadAll(), !decoded.isEmpty {
             slots = decoded.sorted { $0.id < $1.id }
         } else {
-            slots = (1...CredentialVault.slotCount).map(Credential.empty)
+            slots = (1...CredentialVault.initialSlotCount).map(Credential.empty)
         }
-        // Make sure the keyboard can see whatever we have right now.
         republishToChannel()
     }
 
@@ -89,11 +90,58 @@ final class CredentialVault: ObservableObject {
 
     var filledCount: Int { slots.filter { !$0.isEmpty }.count }
     var totpCount: Int { slots.filter { $0.hasTOTP }.count }
+    var count: Int { slots.count }
+
+    /// Highest id currently used (0 when empty).
+    var nextId: Int { (slots.map(\.id).max() ?? 0) + 1 }
+
+    // MARK: Slot lifecycle — unbounded
+
+    /// Appends a new empty slot and returns its id.
+    @discardableResult
+    func addSlot() -> Int {
+        let id = nextId
+        slots.append(.empty(id))
+        persist()
+        return id
+    }
+
+    /// Appends a fully-formed credential, assigning the next free id.
+    @discardableResult
+    func append(_ cred: Credential) -> Int {
+        var copy = cred
+        copy.id = nextId
+        slots.append(copy)
+        persist()
+        return copy.id
+    }
 
     func clear(_ id: Int) { self[id] = .empty(id) }
 
+    /// Removes the slot entirely (renumbering the rest is not needed because
+    /// ids are stable labels, but we do renumber to keep 1..n tidy).
+    func delete(_ id: Int) {
+        slots.removeAll { $0.id == id }
+        renumber()
+        persist()
+    }
+
+    /// Deletes every empty trailing slot, keeping at least one.
+    func pruneEmptyTail() {
+        while slots.count > 1, slots.last?.isEmpty == true {
+            slots.removeLast()
+        }
+        persist()
+    }
+
+    private func renumber() {
+        for i in slots.indices {
+            slots[i].id = i + 1
+        }
+    }
+
     func clearAll() {
-        slots = (1...CredentialVault.slotCount).map(Credential.empty)
+        slots = [Credential.empty(1)]
         persist()
     }
 

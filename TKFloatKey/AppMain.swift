@@ -125,7 +125,7 @@ struct MainScreen: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    card(title: "已用槽位", value: "\(vault.filledCount) / 10", icon: "square.grid.3x3.fill")
+                    card(title: "已用槽位", value: "\(vault.filledCount) / \(vault.count)", icon: "square.grid.3x3.fill")
                     card(title: "2FA 槽位", value: "\(vault.totpCount)",
                          icon: "lock.shield.fill")
 
@@ -222,6 +222,7 @@ struct MainScreen: View {
             .font(.system(size: 13, weight: .semibold))
     }
 }
+
 
 
 
