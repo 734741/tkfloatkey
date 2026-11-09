@@ -1,4 +1,4 @@
-import UIKit
+﻿import UIKit
 import SwiftUI
 
 
@@ -30,7 +30,7 @@ struct KeyboardView: View {
     /// keyboard is never blank and never traps on an empty array.
     private var displayIDs: [Int] {
         let ids = vault.slots.map(\.id).sorted()
-        return ids.isEmpty ? Array(1...10) : ids
+        return ids.isEmpty ? Array(1...10) : ids   // all slots, no cap
     }
 
     var body: some View {
@@ -60,48 +60,51 @@ struct KeyboardView: View {
         }
     }
 
-    // MARK: 1 2 3 … 10 — selection only
+    // MARK: Slot row — horizontally scrollable, unlimited slots
 
     private var slotRow: some View {
-        HStack(spacing: 5) {
-            ForEach(Array(displayIDs.prefix(20)), id: \.self) { id in
-                let slot = vault.slots.first { $0.id == id } ?? .empty(id)
-                Button {
-                    // Only selects the slot. Typing happens on the buttons below.
-                    selected = (selected == id) ? nil : id
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                } label: {
-                    VStack(spacing: 1) {
-                        Text("\(id)")
-                            .font(.system(size: 15, weight: .heavy, design: .rounded))
-                        Group {
-                            if slot.hasTOTP {
-                                Image(systemName: "lock.fill").font(.system(size: 7, weight: .bold))
-                            } else {
-                                Image(systemName: "lock.open").font(.system(size: 7, weight: .bold))
+        ScrollView(.horizontal, showsIndicators: false) {
+            LazyHStack(spacing: 5) {
+                ForEach(displayIDs, id: \.self) { id in
+                    let slot = vault.slots.first { $0.id == id } ?? .empty(id)
+                    Button {
+                        // Only selects the slot. Typing happens on the buttons below.
+                        selected = (selected == id) ? nil : id
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    } label: {
+                        VStack(spacing: 1) {
+                            Text("\(id)")
+                                .font(.system(size: 15, weight: .heavy, design: .rounded))
+                            Group {
+                                if slot.hasTOTP {
+                                    Image(systemName: "lock.fill").font(.system(size: 7, weight: .bold))
+                                } else {
+                                    Image(systemName: "lock.open").font(.system(size: 7, weight: .bold))
+                                }
                             }
+                            .opacity(slot.isEmpty ? 0.25 : 0.75)
                         }
-                        .opacity(slot.isEmpty ? 0.25 : 0.75)
+                        .frame(width: 42, height: 42)
+                        .background(
+                            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                                .fill(selected == id
+                                      ? AnyShapeStyle(Color.accentColor)
+                                      : AnyShapeStyle(Color(uiColor: .secondarySystemGroupedBackground)))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                                .strokeBorder(slot.isEmpty ? Color.clear : Color.accentColor.opacity(0.35),
+                                              lineWidth: 1)
+                        )
+                        .foregroundStyle(selected == id ? Color.white
+                                                        : (slot.isEmpty ? Color.secondary : Color.primary))
                     }
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 42)
-                    .background(
-                        RoundedRectangle(cornerRadius: 9, style: .continuous)
-                            .fill(selected == id
-                                  ? AnyShapeStyle(Color.accentColor)
-                                  : AnyShapeStyle(Color(uiColor: .secondarySystemGroupedBackground)))
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 9, style: .continuous)
-                            .strokeBorder(slot.isEmpty ? Color.clear : Color.accentColor.opacity(0.35),
-                                          lineWidth: 1)
-                    )
-                    .foregroundStyle(selected == id ? Color.white
-                                                    : (slot.isEmpty ? Color.secondary : Color.primary))
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
+            .padding(.horizontal, 2)
         }
+        .frame(height: 46)
     }
 
     // MARK: Per-field load buttons
@@ -236,6 +239,7 @@ struct KeyboardView: View {
         }
     }
 }
+
 
 
 
