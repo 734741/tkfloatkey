@@ -1,7 +1,7 @@
-import SwiftUI
+﻿import SwiftUI
 import UIKit
 
-/// Bulk import: paste lines of `备注|账号|密码|2FA密钥` and fill slots in one shot.
+/// Bulk import: paste lines of `账号----密码----2FA密钥----备注` and fill slots in one shot.
 /// Order matters — line 1 goes to slot 1, line 2 to slot 2, …
 ///
 /// Accepted formats (the leading number is optional):
@@ -18,13 +18,14 @@ struct BulkImportView: View {
     @State private var statusIsError = false
 
     private let helpText = """
-    每行一组，按顺序填：邮箱 | 密码 | 2FA密钥 | 备注
+    格式（用 ---- 隔开）：
+    账号----密码----2FA密钥----备注
 
-    分隔符用 ---- 隔开，格式：
-    邮箱----密码----2FA密钥
+    第 3、4 段可以留空。备注留空时列表会直接显示账号本身。
 
     例：
-    abc@outlook.com----pass123----JBSWY3DPEHPK3PXP
+    abc@outlook.com----pass123----JBSWY3DPEHPK3PXP----主号
+    abc@outlook.com----pass123
     """
 
     var body: some View {
@@ -171,11 +172,8 @@ struct BulkImportView: View {
             }
             if parts.count > 3 { cred.label = parts[3] }
 
-            // No auto-generated label: the row already shows the account itself,
-            // and a derived label made it look like a second account.
-            if cred.label.isEmpty {
-                cred.label = "账号\(index + 1)"
-            }
+            // Leave the label empty when none was supplied: the row already
+            // shows the account, and the user can type a note later.
 
             if !cred.isEmpty {
                 if index < vault.count {
@@ -193,6 +191,9 @@ struct BulkImportView: View {
         statusIsError = false
     }
 }
+
+
+
 
 
 
