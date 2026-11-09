@@ -27,25 +27,27 @@ struct SlotPanel: View {
                 }
                 .padding(.horizontal, 9)
                 .padding(.vertical, 9)
-
-                Button {
-                    let id = vault.addSlot()
-                    withAnimation(.spring(response: 0.28, dampingFraction: 0.85)) {
-                        openSlot = id
-                    }
-                } label: {
-                    Label("新增槽位", systemImage: "plus.circle.fill")
-                        .font(.system(size: 13, weight: .semibold))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 9)
-                        .background(RoundedRectangle(cornerRadius: 10)
-                            .fill(Color.accentColor.opacity(0.14)))
-                }
-                .buttonStyle(.plain)
-                .padding(.horizontal, 9)
-                .padding(.bottom, 9)
             }
             .frame(maxHeight: 400)
+
+            // 固定在面板底部，不随列表滚动，也不遮挡内容
+            Divider().opacity(0.4)
+            Button {
+                let id = vault.addSlot()
+                withAnimation(.spring(response: 0.28, dampingFraction: 0.85)) {
+                    openSlot = id
+                }
+            } label: {
+                Label("新增槽位", systemImage: "plus.circle.fill")
+                    .font(.system(size: 13, weight: .semibold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(RoundedRectangle(cornerRadius: 10)
+                        .fill(Color.accentColor.opacity(0.14)))
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal, 9)
+            .padding(.vertical, 8)
         }
         .background(
             RoundedRectangle(cornerRadius: 22, style: .continuous)
@@ -251,7 +253,7 @@ struct SlotPanel: View {
                     Button {
                         copy(slot.username)
                     } label: {
-                        smallButton("加载账号", "person.crop.circle")
+                        smallButton("复制账号", "person.crop.circle")
                     }
                     .buttonStyle(.plain)
                     .disabled(slot.username.isEmpty)
@@ -259,7 +261,7 @@ struct SlotPanel: View {
                     Button {
                         copy(slot.password)
                     } label: {
-                        smallButton("加载密码", "key.fill")
+                        smallButton("复制密码", "key.fill")
                     }
                     .buttonStyle(.plain)
                     .disabled(slot.password.isEmpty)
@@ -303,7 +305,7 @@ struct SlotPanel: View {
                 .minimumScaleFactor(0.6)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            // 点一下就只加载这一项（此行对应账号或密码，不混在一起）
+            // 点一下就只复制这一项（此行对应账号或密码，不混在一起）
             Button {
                 copy(value)
                 if !revealed { show() }
@@ -311,7 +313,7 @@ struct SlotPanel: View {
                 HStack(spacing: 3) {
                     Image(systemName: "arrow.down.circle.fill")
                         .font(.system(size: 11))
-                    Text("加载")
+                    Text("复制")
                         .font(.system(size: 10, weight: .semibold))
                 }
                 .foregroundStyle(.tint)
@@ -376,7 +378,7 @@ struct SlotPanel: View {
                 } label: {
                     HStack(spacing: 3) {
                         Image(systemName: "arrow.down.circle.fill").font(.system(size: 11))
-                        Text("加载").font(.system(size: 10, weight: .semibold))
+                        Text("复制").font(.system(size: 10, weight: .semibold))
                     }
                     .foregroundStyle(.green)
                     .padding(.horizontal, 7)
@@ -539,6 +541,8 @@ struct EditorSheet: View {
         }
     }
 }
+
+
 
 
 
