@@ -1,4 +1,4 @@
-import Foundation
+﻿import Foundation
 import Security
 
 /// One of the ten credential slots.
@@ -126,6 +126,14 @@ final class CredentialVault: ObservableObject {
         persist()
     }
 
+    /// Removes several slots at once, then renumbers what is left.
+    func deleteMultiple(_ ids: Set<Int>) {
+        slots.removeAll { ids.contains($0.id) }
+        if slots.isEmpty { slots = [.empty(1)] }
+        renumber()
+        persist()
+    }
+
     /// Deletes every empty trailing slot, keeping at least one.
     func pruneEmptyTail() {
         while slots.count > 1, slots.last?.isEmpty == true {
@@ -213,4 +221,5 @@ final class CredentialVault: ObservableObject {
         }
     }
 }
+
 

@@ -14,6 +14,8 @@ struct SlotPanel: View {
     @State private var editingSlot: Credential? = nil
     @State private var headerDrag: CGSize = .zero
     @State private var toast: String? = nil
+    @State private var showBulkDelete = false
+    @State private var deleteSelection: Set<Int> = []
 
     var body: some View {
         VStack(spacing: 0) {
@@ -75,6 +77,13 @@ struct SlotPanel: View {
                 revealed.insert(saved.id)
             }
         }
+        .sheet(isPresented: $showBulkDelete) {
+            BulkDeleteSheet(vault: vault, selection: $deleteSelection) {
+                showBulkDelete = false
+                openSlot = nil
+                flash("已删除选中槽位")
+            }
+        }
     }
 
     // MARK: - Header (drag handle + close)
@@ -87,14 +96,12 @@ struct SlotPanel: View {
             Text("TK 账号槽位")
                 .font(.system(size: 14, weight: .semibold, design: .rounded))
             Spacer()
-            Text("\(vault.filledCount)/\(vault.count)")
-                .font(.system(size: 11, weight: .bold, design: .rounded))
-                .padding(.horizontal, 7).padding(.vertical, 3)
-                .background(Capsule().fill(.quaternary))
             Button {
-                withAnimation(.easeOut(duration: 0.2)) { revealed.removeAll() }
+                withAnimation(.easeOut(duration: 0.2)) {
+                    showBulkDelete = true
+                }
             } label: {
-                Image(systemName: "eye.slash")
+                Image(systemName: "checklist")
                     .font(.system(size: 13, weight: .semibold))
             }
             .buttonStyle(.plain)
@@ -541,6 +548,7 @@ struct EditorSheet: View {
         }
     }
 }
+
 
 
 

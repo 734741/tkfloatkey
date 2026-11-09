@@ -8,6 +8,7 @@ struct TKFloatKeyApp: App {
     @StateObject private var vault = CredentialVault()
     @State private var locked = true
     @Environment(\.scenePhase) private var scenePhase
+    @State private var backgroundedAt: Date?
 
     var body: some Scene {
         WindowGroup {
@@ -23,9 +24,21 @@ struct TKFloatKeyApp: App {
             }
             .animation(.easeInOut(duration: 0.22), value: locked)
             .onChange(of: scenePhase) { phase in
-                // Re-arm the gate whenever the app leaves the foreground so the
-                // credentials are not sitting in plain sight in the app switcher.
-                if phase == .background { locked = true }
+                switch phase {
+                case .background:
+                    // Only remember when we left; do not lock yet.
+                    backgroundedAt = Date()
+                case .active:
+                    // Relock only after 10 minutes away, so switching to another
+                    // app to paste a password does not force a Face ID prompt.
+                    if let left = backgroundedAt,
+                       Date().timeIntervalSince(left) > 600 {
+                        locked = true
+                    }
+                    backgroundedAt = nil
+                default:
+                    break
+                }
             }
         }
     }
@@ -118,7 +131,6 @@ struct MainScreen: View {
     @ObservedObject var vault: CredentialVault
     var onLock: () -> Void
 
-    @State private var syncToast: String? = nil
     @State private var showBulk = false
 
     var body: some View {
@@ -130,25 +142,9 @@ struct MainScreen: View {
                          icon: "lock.shield.fill")
 
                     Button {
-                        vault.republishToChannel()
-                        UINotificationFeedbackGenerator().notificationOccurred(.success)
-                        withAnimation { syncToast = "已同步 \(vault.filledCount) 个槽位到键盘" }
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
-                            withAnimation { syncToast = nil }
-                        }
-                    } label: {
-                        Label("同步到键盘", systemImage: "arrow.triangle.2.circlepath")
-                            .font(.system(size: 14, weight: .semibold))
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                            .background(RoundedRectangle(cornerRadius: 12).fill(Color.accentColor.opacity(0.15)))
-                    }
-                    .buttonStyle(.plain)
-
-                    Button {
                         showBulk = true
                     } label: {
-                        Label("批量导入 10 组", systemImage: "square.and.arrow.down.on.square")
+                        Label("批量导入", systemImage: "square.and.arrow.down.on.square")
                             .font(.system(size: 14, weight: .semibold))
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
@@ -156,25 +152,10 @@ struct MainScreen: View {
                     }
                     .buttonStyle(.plain)
 
-                    Button {
-                        onLock()
-                    } label: {
-                        Label("锁定面板", systemImage: "lock.fill")
-                            .font(.system(size: 14, weight: .semibold))
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                            .background(RoundedRectangle(cornerRadius: 12).fill(Color.primary.opacity(0.07)))
-                    }
-                    .buttonStyle(.plain)
-
-                    Text("右下角的悬浮球点一下即可展开 1–10 号槽位；长按拖动可换位置，松手自动贴边。点某个数字就展开对应的账号、密码与实时 2FA。")
+                    Text("点右下角蓝色悬浮球展开槽位。每行右侧两位小按钮：蓝色复制账号，橙色复制密码。点数字展开可见明文和 2FA 验证码。")
                         .font(.system(size: 12))
                         .foregroundStyle(.secondary)
                         .padding(.top, 4)
-
-                    Text("改完账号后记得点一次「同步到键盘」，键盘才能读到最新内容。")
-                        .font(.system(size: 12))
-                        .foregroundStyle(.orange)
                 }
                 .padding(18)
                 .padding(.bottom, 120)   // keep content clear of the floating ball
@@ -186,17 +167,7 @@ struct MainScreen: View {
             .sheet(isPresented: $showBulk) {
                 BulkImportView(vault: vault)
             }
-            .overlay(alignment: .top) {
-                if let syncToast {
-                    Text(syncToast)
-                        .font(.system(size: 13, weight: .semibold))
-                        .padding(.horizontal, 14).padding(.vertical, 8)
-                        .background(Capsule().fill(.black.opacity(0.8)))
-                        .foregroundStyle(.white)
-                        .padding(.top, 8)
-                        .transition(.opacity)
-                }
-            }
+
         }
     }
 
@@ -222,6 +193,7 @@ struct MainScreen: View {
             .font(.system(size: 13, weight: .semibold))
     }
 }
+
 
 
 
