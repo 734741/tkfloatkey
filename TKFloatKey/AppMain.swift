@@ -1,6 +1,7 @@
 ﻿import LocalAuthentication
 
 import SwiftUI
+import UIKit
 
 @main
 struct TKFloatKeyApp: App {
@@ -117,6 +118,8 @@ struct MainScreen: View {
     @ObservedObject var vault: CredentialVault
     var onLock: () -> Void
 
+    @State private var syncToast: String? = nil
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -124,6 +127,22 @@ struct MainScreen: View {
                     card(title: "已用槽位", value: "\(vault.filledCount) / 10", icon: "square.grid.3x3.fill")
                     card(title: "2FA 槽位", value: "\(vault.totpCount)",
                          icon: "lock.shield.fill")
+
+                    Button {
+                        vault.republishToChannel()
+                        UINotificationFeedbackGenerator().notificationOccurred(.success)
+                        withAnimation { syncToast = "已同步 \(vault.filledCount) 个槽位到键盘" }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
+                            withAnimation { syncToast = nil }
+                        }
+                    } label: {
+                        Label("同步到键盘", systemImage: "arrow.triangle.2.circlepath")
+                            .font(.system(size: 14, weight: .semibold))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(RoundedRectangle(cornerRadius: 12).fill(Color.accentColor.opacity(0.15)))
+                    }
+                    .buttonStyle(.plain)
 
                     Button {
                         onLock()
@@ -140,6 +159,10 @@ struct MainScreen: View {
                         .font(.system(size: 12))
                         .foregroundStyle(.secondary)
                         .padding(.top, 4)
+
+                    Text("改完账号后记得点一次「同步到键盘」，键盘才能读到最新内容。")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.orange)
                 }
                 .padding(18)
                 .padding(.bottom, 120)   // keep content clear of the floating ball
@@ -147,6 +170,17 @@ struct MainScreen: View {
             .navigationTitle("TK 悬浮面板")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) { lockButton }
+            }
+            .overlay(alignment: .top) {
+                if let syncToast {
+                    Text(syncToast)
+                        .font(.system(size: 13, weight: .semibold))
+                        .padding(.horizontal, 14).padding(.vertical, 8)
+                        .background(Capsule().fill(.black.opacity(0.8)))
+                        .foregroundStyle(.white)
+                        .padding(.top, 8)
+                        .transition(.opacity)
+                }
             }
         }
     }
@@ -173,6 +207,7 @@ struct MainScreen: View {
             .font(.system(size: 13, weight: .semibold))
     }
 }
+
 
 
 

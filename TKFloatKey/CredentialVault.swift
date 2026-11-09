@@ -1,4 +1,4 @@
-﻿import Foundation
+import Foundation
 import Security
 
 /// One of the ten credential slots.
@@ -57,15 +57,13 @@ struct Credential: Identifiable, Codable, Equatable {
     }
 }
 
-// MARK: - Vault (Keychain + App Group, shared with the keyboard extension)
+// MARK: - Vault (Keychain + pasteboard channel, shared with the keyboard)
 
 final class CredentialVault: ObservableObject {
 
     static let slotCount = 10
-    static let appGroup = BuildConfig.appGroup
     static let keychainService = BuildConfig.keychainService
     static let keychainAccount = BuildConfig.keychainAccount
-    static let sharedFileName = BuildConfig.sharedFileName
 
     @Published private(set) var slots: [Credential]
 
@@ -77,7 +75,7 @@ final class CredentialVault: ObservableObject {
             slots = (1...CredentialVault.slotCount).map(Credential.empty)
         }
         // Make sure the keyboard can see whatever we have right now.
-        if !slots.allSatisfy({ $0.isEmpty }) { persist() }
+        republishToChannel()
     }
 
     subscript(id: Int) -> Credential {
@@ -99,7 +97,7 @@ final class CredentialVault: ObservableObject {
         persist()
     }
 
-    // MARK: Persistence — Keychain (private) + App Group file (shared)
+    // MARK: Persistence — Keychain (private) + pasteboard channel (keyboard)
 
     func persist() {
         guard let data = try? JSONEncoder().encode(slots) else { return }
@@ -107,29 +105,29 @@ final class CredentialVault: ObservableObject {
         // 1) Private Keychain copy (device-only, not in backups).
         CredentialVault.saveKeychain(data)
 
-        // 2) App Group file so the keyboard extension can read it.
-        if let url = CredentialVault.sharedFileURL() {
-            try? data.write(to: url, options: [.atomic, .completeFileProtectionUnlessOpen])
-        }
-
-        // 3) Tell the keyboard (if running) that the data changed.
-        NotificationCenter.default.post(name: Notification.Name("TKFloatKey.vault.changed"),
-                                        object: nil)
+        // 2) Push the same JSON onto the private pasteboard channel so the
+        //    keyboard extension can read it. No App Group needed, so this works
+        //    with a free Apple ID.
+        CredentialVault.pushToChannel(data)
     }
 
-    private static func sharedFileURL() -> URL? {
-        BuildConfig.sharedDirectory?.appendingPathComponent(BuildConfig.sharedFileName)
+    /// Writes the vault onto the dedicated (non-general) pasteboard.
+    static func pushToChannel(_ data: Data) {
+        let board = BuildConfig.channel
+        board.items = [[
+            BuildConfig.payloadVersionKey: 1,
+            "json": data.base64EncodedString()
+        ]]
+    }
+
+    /// Re-reads the Keychain copy, so a fresh install can re-publish to the channel.
+    func republishToChannel() {
+        guard let data = CredentialVault.loadKeychain() else { return }
+        CredentialVault.pushToChannel(data)
     }
 
     private static func loadAll() -> [Credential]? {
-        // Prefer the private keychain; fall back to the shared file.
         if let data = loadKeychain(),
-           let decoded = try? JSONDecoder().decode([Credential].self, from: data),
-           !decoded.isEmpty {
-            return decoded
-        }
-        if let url = sharedFileURL(),
-           let data = try? Data(contentsOf: url),
            let decoded = try? JSONDecoder().decode([Credential].self, from: data) {
             return decoded
         }

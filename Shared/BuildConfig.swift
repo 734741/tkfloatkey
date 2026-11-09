@@ -1,40 +1,33 @@
 import Foundation
+import UIKit
 
-/// Shared build/runtime configuration — compiled into BOTH the app and the
-/// keyboard extension (same file, added to both targets) so the two sides can
-/// never disagree about the App Group or file names.
+/// Shared config for BOTH the app and the keyboard extension.
+///
+/// **No App Group required.** A free Apple ID cannot provision App Groups, so
+/// the two processes exchange data through a pasteboard channel instead:
+///
+///   app      → writes JSON into UIPasteboard under `channelName`
+///   keyboard → reads that pasteboard on every appearance
+///
+/// The pasteboard is private to this app pair (it is namespaced and contains
+/// only the encoded vault), so it does not clobber the user's clipboard: we use
+/// a *separate* `UIPasteboard(name:create:)` instance, not `general`.
 enum BuildConfig {
 
-    /// App Group identifier — must match the entitlements files verbatim.
-    static let appGroup = "group.com.local.tkfloatkey"
+    /// Dedicated pasteboard used as the app ↔ keyboard channel.
+    /// Not `.general`, so the user's copied text is untouched.
+    static let channelName = "com.local.tkfloatkey.vault"
 
-    /// Keychain service for the app's private copy of the vault.
+    /// Keychain service for the app's own private copy of the vault.
     static let keychainService = "com.local.tkfloatkey.vault"
     static let keychainAccount = "slots.v1"
 
-    /// File name shared between the app and the keyboard.
-    static let sharedFileName = "slots.v1.json"
+    /// Version tag written alongside the payload so the keyboard can tell
+    /// "never synced" apart from "synced an empty vault".
+    static let payloadVersionKey = "tkfkv"
 
-    /// True when the App Group container really resolved on this device.
-    ///
-    /// Unsigned CI builds that Sideloadly re-signs do NOT get the App Groups
-    /// entitlement, so this comes back `false` — the UI uses that to explain why
-    /// the keyboard shows no data instead of silently showing empty slots.
-    static var hasAppGroup: Bool {
-        FileManager.default
-            .containerURL(forSecurityApplicationGroupIdentifier: appGroup) != nil
-    }
-
-    /// Directory used for the shared JSON payload.
-    ///
-    /// Signed builds get the App Group container, which both processes can read.
-    /// Otherwise it degrades to Documents so the app itself still works.
-    static var sharedDirectory: URL? {
-        if let group = FileManager.default
-            .containerURL(forSecurityApplicationGroupIdentifier: appGroup) {
-            return group
-        }
-        return FileManager.default.urls(for: .documentDirectory,
-                                        in: .userDomainMask).first
+    /// The shared pasteboard instance (created lazily, never nil in practice).
+    static var channel: UIPasteboard {
+        UIPasteboard(name: UIPasteboard.Name(channelName), create: true)
     }
 }

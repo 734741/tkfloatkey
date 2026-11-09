@@ -1,66 +1,6 @@
 ﻿import UIKit
 import SwiftUI
 
-/// Reads the 10 slots from the shared App Group container.
-/// The keyboard extension runs in its own sandbox, so it cannot read the app's
-/// private Keychain; both targets agree on an App Group + shared keychain group.
-final class SharedVault: ObservableObject {
-
-    static let appGroup = BuildConfig.appGroup
-    static let keychainService = BuildConfig.keychainService
-    static let keychainAccount = BuildConfig.keychainAccount
-
-    @Published private(set) var slots: [Credential] = []
-
-    init() {
-        // Never leave the panel stale: reload on every appearance and whenever
-        // the extension is asked to redraw.
-        reload()
-        NotificationCenter.default.addObserver(
-            forName: UIApplication.didBecomeActiveNotification,
-            object: nil, queue: .main
-        ) { [weak self] _ in self?.reload() }
-        NotificationCenter.default.addObserver(
-            forName: NSNotification.Name("TKFloatKey.vault.changed"),
-            object: nil, queue: .main
-        ) { [weak self] _ in self?.reload() }
-    }
-
-    func reload() {
-        guard let data = SharedVault.load() else { return }
-        if let decoded = try? JSONDecoder().decode([Credential].self, from: data),
-           !decoded.isEmpty {
-            let sorted = decoded.sorted { $0.id < $1.id }
-            if sorted != slots { slots = sorted }
-            return
-        }
-        if let raw = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
-            let decoded = raw.compactMap(Credential.fromJSON).sorted { $0.id < $1.id }
-            if !decoded.isEmpty, decoded != slots { slots = decoded }
-        }
-    }
-
-    private static func load() -> Data? {
-        // 1) App Group container file — written by the main app on every save.
-        if let url = BuildConfig.sharedDirectory?
-            .appendingPathComponent(BuildConfig.sharedFileName),
-           let data = try? Data(contentsOf: url) {
-            return data
-        }
-        // 2) Shared keychain access group as a second source.
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: keychainService,
-            kSecAttrAccount as String: keychainAccount,
-            kSecAttrAccessGroup as String: appGroup,
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne
-        ]
-        var item: CFTypeRef?
-        guard SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess else { return nil }
-        return item as? Data
-    }
-}
 
 // MARK: - Keyboard UI
 
@@ -197,8 +137,8 @@ struct KeyboardView: View {
         Group {
             if vault.slots.allSatisfy({ $0.isEmpty }) {
                 // Two very different causes, two very different fixes.
-                if !BuildConfig.hasAppGroup {
-                    Text("读不到数据：请在 设置→通用→键盘→TK面板 打开「完全访问」")
+                if !vault.hasSynced {
+                    Text("没数据：设置→通用→键盘→TK面板，打开「完全访问」；再到 App 点「同步到键盘」")
                         .foregroundStyle(.orange)
                 } else {
                     Text("还没有账号：先打开 TK面板 App 录入 1–10 号槽位")
@@ -289,6 +229,9 @@ struct KeyboardView: View {
         }
     }
 }
+
+
+
 
 
 
