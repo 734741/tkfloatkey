@@ -1,43 +1,43 @@
 import Foundation
 import UIKit
 
-/// Reads the 10 slots from the dedicated pasteboard channel written by the
-/// main app. No App Group required, so a free Apple ID build works.
+/// Reads slots published by the main app over a private pasteboard channel.
+///
+/// Written defensively: a keyboard extension that throws during init or
+/// `viewDidLoad` is silently killed by iOS and the user just sees the system
+/// keyboard come back. So every step here is guarded and never traps.
 final class SharedVault: ObservableObject {
-
-    static let channelName = BuildConfig.channelName
 
     @Published private(set) var slots: [Credential] = []
     @Published private(set) var hasSynced = false
 
     init() {
-        reload()
-        NotificationCenter.default.addObserver(
-            forName: UIApplication.didBecomeActiveNotification,
-            object: nil, queue: .main
-        ) { [weak self] _ in self?.reload() }
+        // No observers, no notifications — the controller reloads explicitly
+        // each time the keyboard appears. Keeps init side-effect free.
     }
 
-    /// Pull the latest payload off the channel.
+    /// Pull the latest payload off the channel. Safe to call repeatedly.
     func reload() {
         guard let decoded = SharedVault.readChannel() else {
-            hasSynced = false
+            if hasSynced { hasSynced = false }
             return
         }
-        hasSynced = true
+        if !hasSynced { hasSynced = true }
         let sorted = decoded.sorted { $0.id < $1.id }
         if sorted != slots { slots = sorted }
     }
 
     private static func readChannel() -> [Credential]? {
-        let board = BuildConfig.channel
-        // `UIPasteboard.items` is a non-optional [[String: Any]]; an empty
-        // array means nothing has been published yet.
-        guard let item = board.items.first else { return nil }
-        guard let encoded = item["json"] as? String,
-              let data = Data(base64Encoded: encoded),
-              let decoded = try? JSONDecoder().decode([Credential].self, from: data)
-        else { return nil }
-        return decoded
+        // Wrapped in autoreleasepool + guards: pasteboard access can return an
+        // empty array or throw under low memory, and a trap here would kill the
+        // extension on launch.
+        return autoreleasepool { () -> [Credential]? in
+            let board = BuildConfig.channel
+            let items = board.items
+            guard let first = items.first else { return nil }
+            guard let encoded = first["json"] as? String else { return nil }
+            guard let data = Data(base64Encoded: encoded) else { return nil }
+            return try? JSONDecoder().decode([Credential].self, from: data)
+        }
     }
 }

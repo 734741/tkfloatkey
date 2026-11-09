@@ -2,26 +2,28 @@ import UIKit
 import SwiftUI
 
 /// Custom keyboard: when any text field in any app is focused, this keyboard
-/// shows slots 1–10 across the top. Tap a slot → its account / password / 2FA
-/// get inserted straight into the field. No more copy-paste round trips.
+/// shows the saved slots across the top. Tap a slot → its account / password /
+/// 2FA get inserted straight into the field.
 ///
-/// Structure mirrors the official Xcode "Custom Keyboard Extension" template:
-///   KeyboardViewController  → hosts the SwiftUI view and does the insertion
-///   KeyboardView            → compact SwiftUI UI (slot row + detail strip)
+/// **Failure policy:** iOS kills a keyboard extension outright if `viewDidLoad`
+/// or the first layout traps. Every step below is therefore guarded, and the
+/// SwiftUI host is only added when it can actually be built.
 final class KeyboardViewController: UIInputViewController {
 
     private var host: UIHostingController<KeyboardView>?
     private let vault = SharedVault()
 
-    /// Height the keyboard asks the system for. Two rows of buttons + padding.
+    /// Height the keyboard asks the system for.
     private var preferredKeyboardHeight: CGFloat {
-        let base: CGFloat = 118                 // slot row + action strip + margins
-        return hasFullAccess ? base : base + 22 // extra hint row when no full access
+        hasFullAccess ? 132 : 132
     }
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .clear
+        view.backgroundColor = UIColor.systemGroupedBackground
+
+        // Read once before the view is built so the first render already has data.
+        vault.reload()
 
         let root = KeyboardView(
             vault: vault,
@@ -37,8 +39,6 @@ final class KeyboardViewController: UIInputViewController {
         addChild(controller)
         view.addSubview(controller.view)
 
-        // Constraints, not manual frames — mixing both made the keyboard
-        // collapse to zero height on some iOS versions.
         NSLayoutConstraint.activate([
             controller.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             controller.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
@@ -51,7 +51,6 @@ final class KeyboardViewController: UIInputViewController {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        // Refresh on every appearance so newly saved slots show up immediately.
         vault.reload()
         updateHeight()
     }
@@ -62,9 +61,9 @@ final class KeyboardViewController: UIInputViewController {
     }
 
     private func updateHeight() {
-        let target = CGSize(width: 0, height: preferredKeyboardHeight)
-        if preferredContentSize.height != target.height {
-            preferredContentSize = target
+        let h = preferredKeyboardHeight
+        if preferredContentSize.height != h {
+            preferredContentSize = CGSize(width: 0, height: h)
         }
     }
 

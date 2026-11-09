@@ -1,4 +1,4 @@
-﻿import UIKit
+import UIKit
 import SwiftUI
 
 
@@ -24,6 +24,13 @@ struct KeyboardView: View {
     private var selectedSlot: Credential? {
         guard let id = selected else { return nil }
         return vault.slots.first { $0.id == id }
+    }
+
+    /// Ids to render. Falls back to 1…10 when nothing has synced, so the
+    /// keyboard is never blank and never traps on an empty array.
+    private var displayIDs: [Int] {
+        let ids = vault.slots.map(\.id).sorted()
+        return ids.isEmpty ? Array(1...10) : ids
     }
 
     var body: some View {
@@ -57,7 +64,7 @@ struct KeyboardView: View {
 
     private var slotRow: some View {
         HStack(spacing: 5) {
-            ForEach(Array(vault.slots.map(\.id).prefix(20)), id: \.self) { id in
+            ForEach(Array(displayIDs.prefix(20)), id: \.self) { id in
                 let slot = vault.slots.first { $0.id == id } ?? .empty(id)
                 Button {
                     // Only selects the slot. Typing happens on the buttons below.
@@ -229,6 +236,8 @@ struct KeyboardView: View {
         }
     }
 }
+
+
 
 
 
