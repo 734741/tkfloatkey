@@ -1,8 +1,8 @@
-﻿import SwiftUI
+import SwiftUI
 import UIKit
 
-/// Bulk import: paste lines of `备注|账号|密码|2FA密钥` and fill all ten slots
-/// in one shot. Order matters — line 1 goes to slot 1, line 2 to slot 2, …
+/// Bulk import: paste lines of `备注|账号|密码|2FA密钥` and fill slots in one shot.
+/// Order matters — line 1 goes to slot 1, line 2 to slot 2, …
 ///
 /// Accepted formats (the leading number is optional):
 ///   1|主号|user1@x.com|pass1|JBSWY3DPEHPK3PXP
@@ -17,14 +17,18 @@ struct BulkImportView: View {
     @State private var status: String? = nil
     @State private var statusIsError = false
 
+    private let helpText = """
+    每行一组，用竖线 | 分隔四个字段：
+    备注 | 账号 | 密码 | 2FA密钥
+
+    2FA 那栏可以留空。前导编号可写可不写。
+    """
+
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 14) {
 
-                Text("每行一组，用竖线 | 分隔四个字段：
-备注 | 账号 | 密码 | 2FA密钥
-
-2FA 那栏可以留空。前导编号可写可不写。")
+                Text(helpText)
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -41,13 +45,16 @@ struct BulkImportView: View {
 
                 HStack(spacing: 10) {
                     Button {
-                        if let s = UIPasteboard.general.string { text = s }
+                        if let pasted = UIPasteboard.general.string {
+                            text = pasted
+                        }
                     } label: {
                         Label("从剪贴板粘贴", systemImage: "doc.on.clipboard")
                             .font(.system(size: 13, weight: .semibold))
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 11)
-                            .background(RoundedRectangle(cornerRadius: 10).fill(Color.primary.opacity(0.07)))
+                            .background(RoundedRectangle(cornerRadius: 10)
+                                .fill(Color.primary.opacity(0.07)))
                     }
                     .buttonStyle(.plain)
 
@@ -58,7 +65,8 @@ struct BulkImportView: View {
                             .font(.system(size: 13, weight: .semibold))
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 11)
-                            .background(RoundedRectangle(cornerRadius: 10).fill(Color.accentColor.opacity(0.18)))
+                            .background(RoundedRectangle(cornerRadius: 10)
+                                .fill(Color.accentColor.opacity(0.18)))
                     }
                     .buttonStyle(.plain)
                 }
@@ -83,8 +91,8 @@ struct BulkImportView: View {
     }
 
     private func apply() {
-        let rawLines = text
-            .replacingOccurrences(of: "\r\n", with: "\n")
+        let normalized = text.replacingOccurrences(of: "\r\n", with: "\n")
+        let rawLines = normalized
             .components(separatedBy: "\n")
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }
@@ -97,8 +105,8 @@ struct BulkImportView: View {
 
         var filled = 0
         for (index, line) in rawLines.enumerated() {
-            // Slots are unbounded: every parsed line gets its own slot.
-            var parts = line.components(separatedBy: "|")
+            var parts = line
+                .components(separatedBy: "|")
                 .map { $0.trimmingCharacters(in: .whitespaces) }
 
             // Drop a leading numeric index if present ("1|备注|账号|…")
@@ -140,4 +148,3 @@ struct BulkImportView: View {
         statusIsError = false
     }
 }
-
