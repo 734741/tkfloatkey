@@ -7,13 +7,13 @@
 	<key>CFBundleDisplayName</key>
 	<string>TK面板</string>
 	<key>CFBundleExecutable</key>
-	<string>$(EXECUTABLE_NAME)</string>
+	<string>TKFloatKey</string>
 	<key>CFBundleIdentifier</key>
-	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<string>com.local.tkfloatkey</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>$(PRODUCT_NAME)</string>
+	<string>TKFloatKey</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -24,11 +24,13 @@
 	<true/>
 	<key>NSFaceIDUsageDescription</key>
 	<string>用 Face ID 解锁本地保存的账号槽位</string>
-	<key>UILaunchScreen</key>
+	<key>UIApplicationSceneManifest</key>
 	<dict>
-		<key>UIColorName</key>
-		<string></string>
+		<key>UIApplicationSupportsMultipleScenes</key>
+		<false/>
 	</dict>
+	<key>UILaunchScreen</key>
+	<dict/>
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
 		<string>armv7</string>
@@ -44,12 +46,5 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-	<key>UIApplicationSceneManifest</key>
-	<dict>
-		<key>UIApplicationSupportsMultipleScenes</key>
-		<false/>
-	</dict>
-	<key>itsencryptionexportcompliancecode</key>
-	<string></string>
 </dict>
 </plist>
