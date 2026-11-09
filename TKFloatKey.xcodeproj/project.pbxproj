@@ -19,6 +19,7 @@
 		A10000000000000000000A /* CredentialVault.swift in Sources (Keyboard) */ = {isa = PBXBuildFile; fileRef = B100000000000000000004 /* CredentialVault.swift */; };
 		A10000000000000000000B /* Embed Keyboard */ = {isa = PBXBuildFile; fileRef = B100000000000000000010 /* TKFloatKeyKeyboard.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		A10000000000000000000C /* BuildConfig.swift in Sources (App) */ = {isa = PBXBuildFile; fileRef = B10000000000000000000C /* BuildConfig.swift */; };
+		A10000000000000000000F /* BulkImportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000E /* BulkImportView.swift */; };
 		A10000000000000000000D /* BuildConfig.swift in Sources (Keyboard) */ = {isa = PBXBuildFile; fileRef = B10000000000000000000C /* BuildConfig.swift */; };
 		A10000000000000000000E /* SharedVault.swift in Sources (Keyboard) */ = {isa = PBXBuildFile; fileRef = B10000000000000000000D /* SharedVault.swift */; };
 /* End PBXBuildFile section */
@@ -56,6 +57,7 @@
 		B100000000000000000005 /* TOTP.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TOTP.swift; sourceTree = "<group>"; };
 		B100000000000000000006 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B100000000000000000007 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		B10000000000000000000E /* BulkImportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BulkImportView.swift; sourceTree = "<group>"; };
 		B100000000000000000008 /* KeyboardViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardViewController.swift; sourceTree = "<group>"; };
 		B100000000000000000009 /* KeyboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardView.swift; sourceTree = "<group>"; };
 		B10000000000000000000A /* Info.plist (Keyboard) */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -98,6 +100,7 @@
 				B100000000000000000001 /* AppMain.swift */,
 				B100000000000000000002 /* FloatingPanel.swift */,
 				B100000000000000000003 /* SlotPanel.swift */,
+				B10000000000000000000E /* BulkImportView.swift */,
 				B100000000000000000004 /* CredentialVault.swift */,
 				B100000000000000000005 /* TOTP.swift */,
 				B100000000000000000006 /* Assets.xcassets */,
@@ -232,6 +235,7 @@
 				A100000000000000000004 /* CredentialVault.swift in Sources */,
 				A100000000000000000005 /* TOTP.swift in Sources */,
 				A10000000000000000000C /* BuildConfig.swift in Sources (App) */,
+				A10000000000000000000F /* BulkImportView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -438,5 +442,6 @@
 	};
 	rootObject = E100000000000000000000 /* Project object */;
 }
+
 
 

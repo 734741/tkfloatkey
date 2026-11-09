@@ -119,6 +119,7 @@ struct MainScreen: View {
     var onLock: () -> Void
 
     @State private var syncToast: String? = nil
+    @State private var showBulk = false
 
     var body: some View {
         NavigationStack {
@@ -141,6 +142,17 @@ struct MainScreen: View {
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
                             .background(RoundedRectangle(cornerRadius: 12).fill(Color.accentColor.opacity(0.15)))
+                    }
+                    .buttonStyle(.plain)
+
+                    Button {
+                        showBulk = true
+                    } label: {
+                        Label("批量导入 10 组", systemImage: "square.and.arrow.down.on.square")
+                            .font(.system(size: 14, weight: .semibold))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(RoundedRectangle(cornerRadius: 12).fill(Color.green.opacity(0.15)))
                     }
                     .buttonStyle(.plain)
 
@@ -170,6 +182,9 @@ struct MainScreen: View {
             .navigationTitle("TK 悬浮面板")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) { lockButton }
+            }
+            .sheet(isPresented: $showBulk) {
+                BulkImportView(vault: vault)
             }
             .overlay(alignment: .top) {
                 if let syncToast {
@@ -207,6 +222,7 @@ struct MainScreen: View {
             .font(.system(size: 13, weight: .semibold))
     }
 }
+
 
 
 
