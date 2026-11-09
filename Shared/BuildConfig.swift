@@ -26,8 +26,15 @@ enum BuildConfig {
     /// "never synced" apart from "synced an empty vault".
     static let payloadVersionKey = "tkfkv"
 
-    /// The shared pasteboard instance (created lazily, never nil in practice).
+    /// The shared pasteboard instance.
+    ///
+    /// `UIPasteboard(name:create:)` is failable. When the named pasteboard
+    /// cannot be created (extremely unlikely), fall back to `general` so the
+    /// app still functions instead of crashing.
     static var channel: UIPasteboard {
-        UIPasteboard(name: UIPasteboard.Name(channelName), create: true)
+        if let named = UIPasteboard(name: UIPasteboard.Name(channelName), create: true) {
+            return named
+        }
+        return UIPasteboard.general
     }
 }
