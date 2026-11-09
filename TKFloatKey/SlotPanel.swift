@@ -13,19 +13,20 @@ struct SlotPanel: View {
     @State private var revealed: Set<Int> = []
     @State private var editingSlot: Credential? = nil
     @State private var headerDrag: CGSize = .zero
+    @State private var toast: String? = nil
 
     var body: some View {
         VStack(spacing: 0) {
             panelHeader
             Divider().opacity(0.4)
             ScrollView {
-                LazyVStack(spacing: 8) {
+                LazyVStack(spacing: 7) {
                     ForEach(vault.slots) { slot in
                         row(slot)
                     }
                 }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 10)
+                .padding(.horizontal, 9)
+                .padding(.vertical, 9)
 
                 Button {
                     let id = vault.addSlot()
@@ -41,10 +42,10 @@ struct SlotPanel: View {
                             .fill(Color.accentColor.opacity(0.14)))
                 }
                 .buttonStyle(.plain)
-                .padding(.horizontal, 10)
-                .padding(.bottom, 10)
+                .padding(.horizontal, 9)
+                .padding(.bottom, 9)
             }
-            .frame(maxHeight: 380)
+            .frame(maxHeight: 400)
         }
         .background(
             RoundedRectangle(cornerRadius: 22, style: .continuous)
@@ -55,6 +56,17 @@ struct SlotPanel: View {
                 )
                 .shadow(color: .black.opacity(0.3), radius: 22, y: 10)
         )
+        .overlay(alignment: .top) {
+            if let toast {
+                Text(toast)
+                    .font(.system(size: 12, weight: .semibold))
+                    .padding(.horizontal, 12).padding(.vertical, 6)
+                    .background(Capsule().fill(.black.opacity(0.82)))
+                    .foregroundStyle(.white)
+                    .padding(.top, 6)
+                    .transition(.opacity)
+            }
+        }
         .sheet(item: $editingSlot) { cred in
             EditorSheet(credential: cred) { saved in
                 vault[saved.id] = saved
@@ -110,52 +122,80 @@ struct SlotPanel: View {
     private func row(_ slot: Credential) -> some View {
         let isOpen = openSlot == slot.id
         return VStack(spacing: 0) {
-            Button {
-                withAnimation(.spring(response: 0.28, dampingFraction: 0.85)) {
-                    openSlot = isOpen ? nil : slot.id
-                }
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-            } label: {
-                HStack(spacing: 10) {
-                    Text("\(slot.id)")
-                        .font(.system(size: 15, weight: .heavy, design: .rounded))
-                        .frame(width: 28, height: 28)
-                        .background(
-                            RoundedRectangle(cornerRadius: 9, style: .continuous)
-                                .fill(slot.isEmpty
-                                      ? AnyShapeStyle(Color.secondary.opacity(0.15))
-                                      : AnyShapeStyle(LinearGradient(
-                                            colors: [.blue, .indigo],
-                                            startPoint: .top, endPoint: .bottom)))
-                        )
-                        .foregroundStyle(slot.isEmpty ? Color.secondary : .white)
+            // Whole row taps to expand. The two quick-copy buttons on the right
+            // stop the tap so you can load a credential in one touch instead of
+            // expanding first.
+            HStack(spacing: 8) {
+                Button {
+                    withAnimation(.spring(response: 0.28, dampingFraction: 0.85)) {
+                        openSlot = isOpen ? nil : slot.id
+                    }
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                } label: {
+                    HStack(spacing: 9) {
+                        Text("\(slot.id)")
+                            .font(.system(size: 15, weight: .heavy, design: .rounded))
+                            .frame(width: 28, height: 28)
+                            .background(
+                                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                                    .fill(slot.isEmpty
+                                          ? AnyShapeStyle(Color.secondary.opacity(0.15))
+                                          : AnyShapeStyle(LinearGradient(
+                                                colors: [.blue, .indigo],
+                                                startPoint: .top, endPoint: .bottom)))
+                            )
+                            .foregroundStyle(slot.isEmpty ? Color.secondary : .white)
 
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text(slot.label.isEmpty ? (slot.isEmpty ? "空槽位" : masked(slot.username)) : slot.label)
-                            .font(.system(size: 13, weight: .semibold, design: .rounded))
-                            .lineLimit(1)
-                        if !slot.isEmpty {
-                            Text(masked(slot.username))
-                                .font(.system(size: 11, design: .monospaced))
-                                .foregroundStyle(.secondary)
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(slot.label.isEmpty ? (slot.isEmpty ? "空槽位" : masked(slot.username)) : slot.label)
+                                .font(.system(size: 13, weight: .semibold, design: .rounded))
                                 .lineLimit(1)
+                            if !slot.isEmpty {
+                                Text(masked(slot.username))
+                                    .font(.system(size: 11, design: .monospaced))
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                            }
                         }
+                        Spacer(minLength: 0)
+                        Image(systemName: isOpen ? "chevron.up" : "chevron.down")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(.tertiary)
                     }
-                    Spacer()
-                    if let code = slot.currentTOTP() {
-                        Text(code.value)
-                            .font(.system(size: 12, weight: .bold, design: .monospaced))
-                            .foregroundStyle(.green)
-                    }
-                    Image(systemName: isOpen ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(.tertiary)
+                    .contentShape(Rectangle())
                 }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 9)
-                .contentShape(Rectangle())
+                .buttonStyle(.plain)
+
+                // One-tap loads, available without expanding the row.
+                if !slot.isEmpty {
+                    quickButton("person.fill", "账号", tint: .blue) {
+                        copy(slot.username)
+                    }
+                    .disabled(slot.username.isEmpty)
+
+                    quickButton("key.fill", "密码", tint: .orange) {
+                        copy(slot.password)
+                    }
+                    .disabled(slot.password.isEmpty)
+                }
+
+                if let code = slot.currentTOTP() {
+                    Button {
+                        copy(code.value)
+                    } label: {
+                        Text(code.value)
+                            .font(.system(size: 11, weight: .bold, design: .monospaced))
+                            .foregroundStyle(.green)
+                            .padding(.horizontal, 6)
+                            .frame(height: 28)
+                            .background(RoundedRectangle(cornerRadius: 7)
+                                .fill(Color.green.opacity(0.14)))
+                    }
+                    .buttonStyle(.plain)
+                }
             }
-            .buttonStyle(.plain)
+            .padding(.horizontal, 9)
+            .padding(.vertical, 7)
 
             if isOpen {
                 detail(slot)
@@ -352,6 +392,20 @@ struct SlotPanel: View {
         }
     }
 
+    /// Compact one-tap copy chip shown on the collapsed row.
+    private func quickButton(_ icon: String, _ title: String,
+                             tint: Color,
+                             action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(tint)
+                .frame(width: 28, height: 28)
+                .background(RoundedRectangle(cornerRadius: 7).fill(tint.opacity(0.13)))
+        }
+        .buttonStyle(.plain)
+    }
+
     private func smallButton(_ title: String, _ icon: String) -> some View {
         HStack(spacing: 4) {
             Image(systemName: icon).font(.system(size: 10, weight: .semibold))
@@ -367,6 +421,10 @@ struct SlotPanel: View {
         guard !value.isEmpty else { return }
         UIPasteboard.general.string = value
         UINotificationFeedbackGenerator().notificationOccurred(.success)
+        withAnimation(.easeOut(duration: 0.12)) { toast = "已复制" }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.75) {
+            withAnimation(.easeIn(duration: 0.18)) { toast = nil }
+        }
     }
 
     private func masked(_ s: String) -> String {
@@ -397,7 +455,10 @@ struct EditorSheet: View {
                     TextField("用户名 / 邮箱 / 手机号", text: $credential.username)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
+                        .textContentType(.oneTimeCode)
+                        .keyboardType(.asciiCapable)
                     SecureField("密码", text: $credential.password)
+                        .textContentType(.oneTimeCode)
                 }
                 Section {
                     TextField("Base32 密钥 或 otpauth:// 链接", text: $totpInput, axis: .vertical)
@@ -478,6 +539,10 @@ struct EditorSheet: View {
         }
     }
 }
+
+
+
+
 
 
 
