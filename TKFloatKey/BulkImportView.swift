@@ -1,4 +1,4 @@
-﻿import SwiftUI
+import SwiftUI
 import UIKit
 
 /// Bulk import: paste lines of `备注|账号|密码|2FA密钥` and fill slots in one shot.
@@ -150,34 +150,31 @@ struct BulkImportView: View {
 
             var cred = Credential.empty(index + 1)
 
-            // Field order: 邮箱 | 密码 | 2FA密钥 [| 备注]
-            // Everything is positional so both "a|b|c" and "a----b----c" work.
-            if parts.count >= 3 {
-                cred.username = parts[0]
-                cred.password = parts[1]
-                let secret = parts[2]
-                if !secret.isEmpty {
-                    if let parsed = TOTP.parse(secret) {
-                        cred.totpSecret = parsed.secret
-                        cred.totpDigits = parsed.digits
-                        cred.totpPeriod = parsed.period
-                        cred.totpAlgorithm = parsed.algorithm.rawValue
-                    } else {
-                        cred.totpSecret = secret
-                    }
-                }
-                if parts.count >= 4 { cred.label = parts[3] }
-            } else if parts.count == 2 {
-                cred.username = parts[0]
-                cred.password = parts[1]
-            } else {
-                // Single field: treat it as the account name.
-                cred.username = parts[0]
-            }
+            // Strict positional order, exactly three fields:
+            //   parts[0] = 账号 (邮箱)
+            //   parts[1] = 密码
+            //   parts[2] = 2FA 密钥
+            // A fourth optional field is the note.
+            cred.username = parts.count > 0 ? parts[0] : ""
+            cred.password = parts.count > 1 ? parts[1] : ""
 
-            // Default label to something readable when none was supplied.
+            if parts.count > 2, !parts[2].isEmpty {
+                let secret = parts[2]
+                if let parsed = TOTP.parse(secret) {
+                    cred.totpSecret = parsed.secret
+                    cred.totpDigits = parsed.digits
+                    cred.totpPeriod = parsed.period
+                    cred.totpAlgorithm = parsed.algorithm.rawValue
+                } else {
+                    cred.totpSecret = secret
+                }
+            }
+            if parts.count > 3 { cred.label = parts[3] }
+
+            // No auto-generated label: the row already shows the account itself,
+            // and a derived label made it look like a second account.
             if cred.label.isEmpty {
-                cred.label = BulkImportView.shortLabel(for: cred.username, index: index)
+                cred.label = "账号\(index + 1)"
             }
 
             if !cred.isEmpty {
