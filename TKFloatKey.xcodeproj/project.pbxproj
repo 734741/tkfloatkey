@@ -147,12 +147,11 @@
 				C100000000000000000001 /* Sources */,
 				C100000000000000000002 /* Frameworks */,
 				C100000000000000000003 /* Resources */,
-				C100000000000000000004 /* Embed Foundation Extensions */,
+
 			);
 			buildRules = (
 			);
 			dependencies = (
-				C1000000000000000000F2 /* PBXTargetDependency */,
 			);
 			name = TKFloatKey;
 			productName = TKFloatKey;
@@ -442,6 +441,7 @@
 	};
 	rootObject = E100000000000000000000 /* Project object */;
 }
+
 
 
 
