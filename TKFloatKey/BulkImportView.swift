@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 import UIKit
 
 /// Bulk import: paste lines of `备注|账号|密码|2FA密钥` and fill slots in one shot.
@@ -18,10 +18,13 @@ struct BulkImportView: View {
     @State private var statusIsError = false
 
     private let helpText = """
-    每行一组，用竖线 | 分隔四个字段：
-    备注 | 账号 | 密码 | 2FA密钥
+    每行一组，按顺序填：邮箱 | 密码 | 2FA密钥 | 备注
 
-    2FA 那栏可以留空。前导编号可写可不写。
+    分隔符用 | 或 ---- 都行，自动识别。
+    2FA 和备注可以留空。前导编号可写可不写。
+
+    例：
+    abc@outlook.com----pass123----JBSWY3DPEHPK3PXP
     """
 
     var body: some View {
@@ -90,6 +93,34 @@ struct BulkImportView: View {
         }
     }
 
+    // MARK: - Parsing helpers
+
+    /// Splits one line on any of the separators people actually use.
+    /// Priority: `|` then `----` then `--` then tab. Only the first separator
+    /// kind found is used, so a password containing `-` is not torn apart.
+    static func split(_ line: String) -> [String] {
+        let candidates = ["|", "----", "\\t", ";", ","]
+        for sep in candidates {
+            let realSep = sep == "\\t" ? "\t" : sep
+            if line.contains(realSep) {
+                return line
+                    .components(separatedBy: realSep)
+                    .map { $0.trimmingCharacters(in: .whitespaces) }
+                    .filter { !$0.isEmpty || sep == "|" }
+            }
+        }
+        return [line.trimmingCharacters(in: .whitespaces)]
+    }
+
+    /// A readable caption when the line had no explicit label.
+    static func shortLabel(for username: String, index: Int) -> String {
+        if let at = username.firstIndex(of: "@") {
+            let head = String(username[username.startIndex..<at])
+            return head.isEmpty ? "账号\(index + 1)" : head
+        }
+        return username.isEmpty ? "账号\(index + 1)" : String(username.prefix(12))
+    }
+
     private func apply() {
         let normalized = text.replacingOccurrences(of: "\r\n", with: "\n")
         let rawLines = normalized
@@ -105,31 +136,44 @@ struct BulkImportView: View {
 
         var filled = 0
         for (index, line) in rawLines.enumerated() {
-            var parts = line
-                .components(separatedBy: "|")
-                .map { $0.trimmingCharacters(in: .whitespaces) }
+            var parts = BulkImportView.split(line)
 
             // Drop a leading numeric index if present ("1|备注|账号|…")
-            if let first = parts.first, Int(first) != nil, parts.count >= 3 {
+            if let first = parts.first, Int(first) != nil, parts.count >= 2 {
                 parts.removeFirst()
             }
-            guard parts.count >= 2 else { continue }
+            guard !parts.isEmpty else { continue }
 
             var cred = Credential.empty(index + 1)
-            cred.label = parts.count > 0 ? parts[0] : ""
-            cred.username = parts.count > 1 ? parts[1] : ""
-            cred.password = parts.count > 2 ? parts[2] : ""
 
-            if parts.count > 3, !parts[3].isEmpty {
-                let secret = parts[3]
-                if let parsed = TOTP.parse(secret) {
-                    cred.totpSecret = parsed.secret
-                    cred.totpDigits = parsed.digits
-                    cred.totpPeriod = parsed.period
-                    cred.totpAlgorithm = parsed.algorithm.rawValue
-                } else {
-                    cred.totpSecret = secret
+            // Field order: 邮箱 | 密码 | 2FA密钥 [| 备注]
+            // Everything is positional so both "a|b|c" and "a----b----c" work.
+            if parts.count >= 3 {
+                cred.username = parts[0]
+                cred.password = parts[1]
+                let secret = parts[2]
+                if !secret.isEmpty {
+                    if let parsed = TOTP.parse(secret) {
+                        cred.totpSecret = parsed.secret
+                        cred.totpDigits = parsed.digits
+                        cred.totpPeriod = parsed.period
+                        cred.totpAlgorithm = parsed.algorithm.rawValue
+                    } else {
+                        cred.totpSecret = secret
+                    }
                 }
+                if parts.count >= 4 { cred.label = parts[3] }
+            } else if parts.count == 2 {
+                cred.username = parts[0]
+                cred.password = parts[1]
+            } else {
+                // Single field: treat it as the account name.
+                cred.username = parts[0]
+            }
+
+            // Default label to something readable when none was supplied.
+            if cred.label.isEmpty {
+                cred.label = BulkImportView.shortLabel(for: cred.username, index: index)
             }
 
             if !cred.isEmpty {
@@ -148,3 +192,5 @@ struct BulkImportView: View {
         statusIsError = false
     }
 }
+
+
