@@ -20,8 +20,8 @@ struct BulkImportView: View {
     private let helpText = """
     每行一组，按顺序填：邮箱 | 密码 | 2FA密钥 | 备注
 
-    分隔符用 | 或 ---- 都行，自动识别。
-    2FA 和备注可以留空。前导编号可写可不写。
+    分隔符用 ---- 隔开，格式：
+    邮箱----密码----2FA密钥
 
     例：
     abc@outlook.com----pass123----JBSWY3DPEHPK3PXP
@@ -95,21 +95,25 @@ struct BulkImportView: View {
 
     // MARK: - Parsing helpers
 
-    /// Splits one line on any of the separators people actually use.
-    /// Priority: `|` then `----` then `--` then tab. Only the first separator
-    /// kind found is used, so a password containing `-` is not torn apart.
+    /// Splits one line into fields.
+    ///
+    /// Primary separator is `----` (four dashes). Empties are preserved so a
+    /// missing 2FA column does not shift the password into its place.
+    /// `|` is also accepted as a fallback for hand-typed rows.
     static func split(_ line: String) -> [String] {
-        let candidates = ["|", "----", "\\t", ";", ","]
-        for sep in candidates {
-            let realSep = sep == "\\t" ? "\t" : sep
-            if line.contains(realSep) {
-                return line
-                    .components(separatedBy: realSep)
-                    .map { $0.trimmingCharacters(in: .whitespaces) }
-                    .filter { !$0.isEmpty || sep == "|" }
-            }
+        let trimmed = line.trimmingCharacters(in: .whitespaces)
+
+        if trimmed.contains("----") {
+            return trimmed
+                .components(separatedBy: "----")
+                .map { $0.trimmingCharacters(in: .whitespaces) }
         }
-        return [line.trimmingCharacters(in: .whitespaces)]
+        if trimmed.contains("|") {
+            return trimmed
+                .components(separatedBy: "|")
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+        }
+        return [trimmed]
     }
 
     /// A readable caption when the line had no explicit label.
@@ -192,5 +196,6 @@ struct BulkImportView: View {
         statusIsError = false
     }
 }
+
 
 
