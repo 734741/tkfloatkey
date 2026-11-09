@@ -1,4 +1,4 @@
-﻿import SwiftUI
+import SwiftUI
 import UIKit
 
 /// The expandable list: 10 numbered rows. Tap "1" and its account/password/2FA
@@ -430,9 +430,16 @@ struct SlotPanel: View {
         guard !value.isEmpty else { return }
         UIPasteboard.general.string = value
         UINotificationFeedbackGenerator().notificationOccurred(.success)
-        withAnimation(.easeOut(duration: 0.12)) { toast = "已复制" }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.75) {
-            withAnimation(.easeIn(duration: 0.18)) { toast = nil }
+        flash("已复制")
+    }
+
+    /// Shows a short confirmation chip at the top of the panel.
+    private func flash(_ text: String) {
+        withAnimation(.easeOut(duration: 0.12)) { toast = text }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+            withAnimation(.easeIn(duration: 0.18)) {
+                if toast == text { toast = nil }
+            }
         }
     }
 
